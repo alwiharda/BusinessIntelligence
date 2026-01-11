@@ -163,3 +163,4 @@ with c2:
 with st.expander("🔍 Lihat Detail Data Transaksi"):
     st.dataframe(df_filtered.sort_values(by='date', ascending=False), use_container_width=True)
 
+
