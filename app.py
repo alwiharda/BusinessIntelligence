@@ -60,7 +60,7 @@ if df is not None:
     filtered_df = df[df['Contract'].isin(contract_filter)]
 
     # --- 4. HEADER (JUDUL DI TENGAH) ---
-    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence 📊</div>', unsafe_allow_html=True)
     
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("Total Pelanggan", len(filtered_df))
@@ -112,3 +112,4 @@ if df is not None:
 
 else:
     st.error("File tidak ditemukan.")
+
