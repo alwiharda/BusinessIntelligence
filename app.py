@@ -48,12 +48,11 @@ def load_data():
     df = pd.read_excel(file_path)
     df.columns = [c.strip().replace(' ', '_').lower() for c in df.columns]
     
-    # FIX: Pembersihan mendalam agar profit negatif (akuntansi) tidak hilang
+    # FIX: Pembersihan mendalam agar profit negatif tidak hilang
     cols_fin = ['sales', 'profit', 'units_sold', 'gross_sales', 'cogs', 'discounts']
     for col in cols_fin:
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
-            # Deteksi format (100) sebagai -100
             df[col] = df[col].apply(lambda x: f"-{x[1:-1]}" if x.startswith('(') and x.endswith(')') else x)
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     
@@ -71,7 +70,7 @@ st.sidebar.markdown("### 🌸 Filter Dashboard")
 selected_countries = st.sidebar.multiselect("Pilih Negara", df['country'].unique(), default=df['country'].unique())
 df_filtered = df[df['country'].isin(selected_countries)].copy()
 
-# --- 5. CLUSTERING (MACHINE LEARNING) ---
+# --- 5. CLUSTERING ---
 if len(df_filtered) > 1:
     X = df_filtered[['units_sold', 'profit']]
     scaler = StandardScaler()
@@ -83,7 +82,7 @@ if len(df_filtered) > 1:
 # --- 6. HEADER ---
 st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights</h1>', unsafe_allow_html=True)
 
-# --- 7. METRICS (UPGRADED DESIGN) ---
+# --- 7. METRICS ---
 total_sales = df_filtered['sales'].sum()
 total_profit = df_filtered['profit'].sum()
 units_sold = df_filtered['units_sold'].sum()
@@ -121,20 +120,22 @@ with col_right:
     fig_clust.update_layout(plot_bgcolor='white', margin=dict(t=10, b=0, l=0, r=0))
     st.plotly_chart(fig_clust, use_container_width=True)
 
-# --- 9. ROW BAWAH: TREND & PIE CHART PROFIT ---
+# --- 9. ROW BAWAH: TREND (FIXED SMOOTH LINE) & PIE CHART ---
 c1, c2 = st.columns(2)
 
 with c1:
     st.subheader("📈 Tren Profit Bulanan")
     df_trend = df_filtered.groupby('date')['profit'].sum().reset_index()
-    fig_trend = px.area(df_trend, x='date', y='profit', color_discrete_sequence=['#B2CEE0'])
-    fig_trend.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title="", yaxis_title="Profit ($)")
+    # MENGEMBALIKAN KE PX.LINE DENGAN SPLINE (MELENGKUNG HALUS)
+    fig_trend = px.line(df_trend, x='date', y='profit', line_shape='spline')
+    fig_trend.update_traces(line_color='#B2CEE0', line_width=4)
+    fig_trend.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title="", yaxis_title="Profit ($)", 
+                            yaxis=dict(showgrid=True, gridcolor='#F1F5F9'))
     st.plotly_chart(fig_trend, use_container_width=True)
 
 with c2:
     st.subheader("🥧 Kontribusi Profit per Produk")
     df_pie = df_filtered.groupby('product')['profit'].sum().reset_index()
-    # Pie Chart (Donut Style)
     fig_pie = px.pie(df_pie, values='profit', names='product',
                      color_discrete_sequence=px.colors.qualitative.Pastel,
                      hole=0.4)
@@ -144,4 +145,4 @@ with c2:
 
 # --- 10. DETAIL TABLE ---
 with st.expander("🔍 Lihat Detail Data Transaksi"):
-    st.dataframe(df_filtered.style.background_gradient(cmap='Pastel1', subset=['profit']), use_container_width=True)
+    st.dataframe(df_filtered.sort_values(by='date', ascending=False), use_container_width=True)
