@@ -18,7 +18,6 @@ st.markdown("""
         background-color: #F8FAFC; 
     }
     
-    /* Custom Metric Card Style */
     .metric-card {
         background: white;
         padding: 22px;
@@ -39,6 +38,26 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# --- FUNGSI HELPER ANIMASI (TAMBAHAN) ---
+def animated_metric(label, value, prefix="", suffix="", color="#B2CEE0", element_id=""):
+    # Menentukan jumlah desimal berdasarkan tipe data
+    decimals = 2 if prefix == "$" else (1 if suffix == "%" else 0)
+    
+    html_code = f"""
+    <div class="metric-card" style="border-top-color: {color};">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value">{prefix}<span id="{element_id}">0</span>{suffix}</div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/1.9.3/countUp.min.js"></script>
+    <script>
+        var numAnim = new CountUp('{element_id}', 0, {value}, {decimals}, 2.5);
+        if (!numAnim.error) {{
+            numAnim.start();
+        }}
+    </script>
+    """
+    return st.components.v1.html(html_code, height=130)
+
 # --- 3. DATA LOADING & ROBUST CLEANING ---
 @st.cache_data
 def load_data():
@@ -48,7 +67,6 @@ def load_data():
     df = pd.read_excel(file_path)
     df.columns = [c.strip().replace(' ', '_').lower() for c in df.columns]
     
-    # FIX: Pembersihan mendalam agar profit negatif tidak hilang
     cols_fin = ['sales', 'profit', 'units_sold', 'gross_sales', 'cogs', 'discounts']
     for col in cols_fin:
         if df[col].dtype == 'object':
@@ -82,7 +100,7 @@ if len(df_filtered) > 1:
 # --- 6. HEADER ---
 st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights</h1>', unsafe_allow_html=True)
 
-# --- 7. METRICS ---
+# --- 7. METRICS WITH ANIMATION ---
 total_sales = df_filtered['sales'].sum()
 total_profit = df_filtered['profit'].sum()
 units_sold = df_filtered['units_sold'].sum()
@@ -90,13 +108,13 @@ margin = (total_profit / total_sales * 100) if total_sales != 0 else 0
 
 m1, m2, m3, m4 = st.columns(4)
 with m1:
-    st.markdown(f'<div class="metric-card"><div class="metric-label">💰 Total Sales</div><div class="metric-value">${total_sales/1e6:.2f}M</div></div>', unsafe_allow_html=True)
+    animated_metric("💰 Total Sales", total_sales/1e6, prefix="$", suffix="M", color="#B2CEE0", element_id="count_sales")
 with m2:
-    st.markdown(f'<div class="metric-card" style="border-top-color: #FFB7B2;"><div class="metric-label">📈 Total Profit</div><div class="metric-value">${total_profit/1e6:.2f}M</div></div>', unsafe_allow_html=True)
+    animated_metric("📈 Total Profit", total_profit/1e6, prefix="$", suffix="M", color="#FFB7B2", element_id="count_profit")
 with m3:
-    st.markdown(f'<div class="metric-card" style="border-top-color: #B2DFDB;"><div class="metric-label">📦 Units Sold</div><div class="metric-value">{units_sold:,.0f}</div></div>', unsafe_allow_html=True)
+    animated_metric("📦 Units Sold", units_sold, prefix="", suffix="", color="#B2DFDB", element_id="count_units")
 with m4:
-    st.markdown(f'<div class="metric-card" style="border-top-color: #FDFD96;"><div class="metric-label">📊 Gross Margin</div><div class="metric-value">{margin:.1f}%</div></div>', unsafe_allow_html=True)
+    animated_metric("📊 Gross Margin", margin, prefix="", suffix="%", color="#FDFD96", element_id="count_margin")
 
 st.write("") 
 
@@ -120,13 +138,12 @@ with col_right:
     fig_clust.update_layout(plot_bgcolor='white', margin=dict(t=10, b=0, l=0, r=0))
     st.plotly_chart(fig_clust, use_container_width=True)
 
-# --- 9. ROW BAWAH: TREND (FIXED SMOOTH LINE) & PIE CHART ---
+# --- 9. ROW BAWAH: TREND & PIE CHART ---
 c1, c2 = st.columns(2)
 
 with c1:
     st.subheader("📈 Tren Profit Bulanan")
     df_trend = df_filtered.groupby('date')['profit'].sum().reset_index()
-    # MENGEMBALIKAN KE PX.LINE DENGAN SPLINE (MELENGKUNG HALUS)
     fig_trend = px.line(df_trend, x='date', y='profit', line_shape='spline')
     fig_trend.update_traces(line_color='#B2CEE0', line_width=4)
     fig_trend.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title="", yaxis_title="Profit ($)", 
