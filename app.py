@@ -80,7 +80,7 @@ st.sidebar.markdown("### 🌸 Filter Dashboard")
 selected_countries = st.sidebar.multiselect("Pilih Negara", df['country'].unique(), default=df['country'].unique())
 df_filtered = df[df['country'].isin(selected_countries)].copy()
 
-# --- 5. CLUSTERING ---
+# --- 5. CLUSTERING (Tetap ada di latar belakang untuk detail data) ---
 if len(df_filtered) > 1:
     X = df_filtered[['units_sold', 'profit']]
     scaler = StandardScaler()
@@ -92,7 +92,7 @@ if len(df_filtered) > 1:
 # --- 6. HEADER ---
 st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights</h1>', unsafe_allow_html=True)
 
-# --- 7. METRICS (ANIMATED & STYLED) ---
+# --- 7. METRICS (ANIMATED) ---
 total_sales = df_filtered['sales'].sum()
 total_profit = df_filtered['profit'].sum()
 units_sold = df_filtered['units_sold'].sum()
@@ -110,7 +110,7 @@ with m4:
 
 st.write("") 
 
-# --- 8. ROW ATAS: MAP & SEGMENT BAR PLOT (UPDATED) ---
+# --- 8. ROW ATAS: MAP & MARKET SEGMENT BAR PLOT (Pembaruan di Sini) ---
 col_left, col_right = st.columns([1.5, 1])
 with col_left:
     st.subheader("🌍 Sebaran Penjualan Global")
@@ -121,21 +121,22 @@ with col_left:
     st.plotly_chart(fig_map, use_container_width=True)
 
 with col_right:
-    st.subheader("📊 Unit Penjualan per Segmen")
-    # Mengagregasi total unit per segmen hasil clustering
-    df_seg_units = df_filtered.groupby('segment_cluster')['units_sold'].sum().reset_index()
-    # Membuat Bar Plot
-    fig_bar = px.bar(df_seg_units, x='segment_cluster', y='units_sold', 
-                     color='segment_cluster',
-                     color_discrete_sequence=["#B2CEE0", "#FFB7B2", "#FDFD96"],
+    st.subheader("📊 Unit Terjual per Kategori Segmen")
+    # Agregasi total unit terjual per kategori 'segment'
+    df_market_seg = df_filtered.groupby('segment')['units_sold'].sum().sort_values(ascending=True).reset_index()
+    
+    # Membuat Bar Plot Horizontal agar nama segmen panjang mudah dibaca
+    fig_bar = px.bar(df_market_seg, x='units_sold', y='segment', orientation='h',
+                     color='units_sold',
+                     color_continuous_scale=["#B2CEE0", "#4DB6AC"],
                      text_auto='.2s')
     
     fig_bar.update_layout(
         plot_bgcolor='white', 
         margin=dict(t=10, b=0, l=0, r=0),
-        xaxis_title="Segmen Performa",
-        yaxis_title="Total Unit Terjual",
-        showlegend=False
+        xaxis_title="Total Unit Terjual",
+        yaxis_title="",
+        coloraxis_showscale=False
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
