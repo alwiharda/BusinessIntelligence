@@ -97,7 +97,7 @@ if df is not None:
     filtered_df = df[df['Contract'].isin(contract_filter)]
 
     # --- 4. HEADER & ANIMATED METRICS ---
-    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence 📊</div>', unsafe_allow_html=True)
     
     total_cust = float(len(filtered_df))
     churn_rate = float((filtered_df['Churn'] == 'Yes').mean() * 100)
@@ -174,3 +174,4 @@ if df is not None:
 
 else:
     st.error("File tidak ditemukan.")
+
