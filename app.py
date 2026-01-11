@@ -9,44 +9,61 @@ from sklearn.preprocessing import StandardScaler
 # --- 1. CONFIG DASHBOARD ---
 st.set_page_config(page_title="Executive Financial Dashboard", layout="wide")
 
-# --- 2. PREMIUM PASTEL CSS & ANIMATION SCRIPT ---
+# --- 2. CSS & ANIMATION SCRIPT ---
 st.markdown("""
     <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/1.9.3/countUp.min.js"></script>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+    
     html, body, [class*="css"] { 
         font-family: 'Plus Jakarta Sans', sans-serif; 
         background-color: #F8FAFC; 
     }
-    
+
+    /* Modern Metric Card Design */
     .metric-card {
         background: white;
-        padding: 22px;
-        border-radius: 18px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-        border-top: 5px solid #B2CEE0;
+        padding: 24px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border-top: 6px solid #B2CEE0;
+        transition: transform 0.3s ease;
     }
-    .metric-label { color: #64748b; font-size: 14px; font-weight: 600; }
-    .metric-value { color: #1e293b; font-size: 26px; font-weight: 800; margin-top: 5px; }
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+    .metric-label { 
+        color: #64748b; 
+        font-size: 15px; 
+        font-weight: 600; 
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .metric-value { 
+        color: #1e293b; 
+        font-size: 28px; 
+        font-weight: 800; 
+        margin-top: 8px; 
+    }
     
     .main-title { 
         color: #475569; 
         font-weight: 800; 
-        font-size: 2.5rem; 
-        margin-bottom: 25px; 
+        font-size: 2.8rem; 
+        margin-bottom: 30px; 
         text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Fungsi Helper untuk menampilkan angka yang beranimasi
-def animated_metric(label, value, prefix="", suffix="", color="#B2CEE0", element_id=""):
-    # Menentukan jumlah desimal: jika margin (persen) pakai 1 desimal, jika jutaan pakai 2 desimal
+# Fungsi Helper untuk Metrik Beranimasi
+def animated_metric(label, value, icon, prefix="", suffix="", color="#B2CEE0", element_id=""):
     decimals = 1 if suffix == "%" else (2 if "M" in suffix else 0)
     
     html_code = f"""
-    <div class="metric-card" style="border-top-color: {color}; height: 110px;">
-        <div class="metric-label">{label}</div>
+    <div class="metric-card" style="border-top-color: {color};">
+        <div class="metric-label"><span>{icon}</span> {label}</div>
         <div class="metric-value">{prefix}<span id="{element_id}">0</span>{suffix}</div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/1.9.3/countUp.min.js"></script>
@@ -57,21 +74,23 @@ def animated_metric(label, value, prefix="", suffix="", color="#B2CEE0", element
         }}
     </script>
     """
-    st.components.v1.html(html_code, height=130)
+    st.components.v1.html(html_code, height=150)
 
-# --- 3. DATA LOADING & ROBUST CLEANING ---
+# --- 3. DATA LOADING ---
 @st.cache_data
 def load_data():
     file_path = "Financial Sample.xlsx"
     if not os.path.exists(file_path): return None
     df = pd.read_excel(file_path)
     df.columns = [c.strip().replace(' ', '_').lower() for c in df.columns]
-    cols_fin = ['sales', 'profit', 'units_sold', 'gross_sales', 'cogs', 'discounts']
+    
+    cols_fin = ['sales', 'profit', 'units_sold', 'gross_sales']
     for col in cols_fin:
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
             df[col] = df[col].apply(lambda x: f"-{x[1:-1]}" if x.startswith('(') and x.endswith(')') else x)
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    
     df['date'] = pd.to_datetime(df['date'])
     return df
 
@@ -80,7 +99,7 @@ if df is None:
     st.error("File 'Financial Sample.xlsx' tidak ditemukan!")
     st.stop()
 
-# --- 4. SIDEBAR ---
+# --- 4. FILTER ---
 st.sidebar.markdown("### 🌸 Filter Dashboard")
 selected_countries = st.sidebar.multiselect("Pilih Negara", df['country'].unique(), default=df['country'].unique())
 df_filtered = df[df['country'].isin(selected_countries)].copy()
@@ -97,7 +116,7 @@ if len(df_filtered) > 1:
 # --- 6. HEADER ---
 st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights</h1>', unsafe_allow_html=True)
 
-# --- 7. METRICS WITH ANIMATION ---
+# --- 7. ANIMATED METRICS ---
 total_sales = df_filtered['sales'].sum()
 total_profit = df_filtered['profit'].sum()
 units_sold = df_filtered['units_sold'].sum()
@@ -105,13 +124,13 @@ margin = (total_profit / total_sales * 100) if total_sales != 0 else 0
 
 m1, m2, m3, m4 = st.columns(4)
 with m1:
-    animated_metric("💰 Total Sales", total_sales/1e6, prefix="$", suffix="M", color="#B2CEE0", element_id="sales_id")
+    animated_metric("Total Sales", total_sales/1e6, "💰", prefix="$", suffix="M", color="#B2CEE0", element_id="sales_id")
 with m2:
-    animated_metric("📈 Total Profit", total_profit/1e6, prefix="$", suffix="M", color="#FFB7B2", element_id="profit_id")
+    animated_metric("Total Profit", total_profit/1e6, "📈", prefix="$", suffix="M", color="#FFB7B2", element_id="profit_id")
 with m3:
-    animated_metric("📦 Units Sold", units_sold, color="#B2DFDB", element_id="units_id")
+    animated_metric("Units Sold", units_sold, "📦", color="#B2DFDB", element_id="units_id")
 with m4:
-    animated_metric("📊 Gross Margin", margin, suffix="%", color="#FDFD96", element_id="margin_id")
+    animated_metric("Gross Margin", margin, "📊", suffix="%", color="#FDFD96", element_id="margin_id")
 
 st.write("") 
 
