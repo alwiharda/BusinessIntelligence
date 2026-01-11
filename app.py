@@ -8,11 +8,21 @@ from sklearn.preprocessing import StandardScaler
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Customer Churn Dashboard", layout="wide")
 
-# Custom CSS agar semua elemen menyatu dengan background
+# Custom CSS agar semua elemen menyatu dengan background dan judul di tengah
 st.markdown("""
     <style>
     /* Latar belakang utama */
     .stApp { background-color: #FDFCF0; }
+    
+    /* Judul Utama di Tengah */
+    .main-title {
+        text-align: center;
+        color: #6D8299;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 3rem;
+        font-weight: bold;
+        padding: 20px 0;
+    }
     
     /* Kartu metrik tanpa border putih yang kaku */
     [data-testid="stMetric"] {
@@ -21,7 +31,7 @@ st.markdown("""
         border-radius: 15px;
     }
     
-    h1, h2, h3 { color: #6D8299; font-family: 'Segoe UI', sans-serif; }
+    h2, h3 { color: #6D8299; font-family: 'Segoe UI', sans-serif; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -49,8 +59,8 @@ if df is not None:
     contract_filter = st.sidebar.multiselect("Tipe Kontrak:", df['Contract'].unique(), default=df['Contract'].unique())
     filtered_df = df[df['Contract'].isin(contract_filter)]
 
-    # --- 4. HEADER ---
-    st.title("📊 Customer Churn Business Intelligence")
+    # --- 4. HEADER (JUDUL DI TENGAH) ---
+    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence</div>', unsafe_allow_html=True)
     
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("Total Pelanggan", len(filtered_df))
@@ -67,7 +77,6 @@ if df is not None:
         st.subheader("📶 Layanan Internet")
         fig1 = px.histogram(filtered_df, x="InternetService", color="Churn", barmode="group",
                             color_discrete_sequence=[PASTEL_PALETTE[2], PASTEL_PALETTE[1]])
-        # Menghapus background putih
         fig1.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=350)
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -79,8 +88,8 @@ if df is not None:
         st.plotly_chart(fig2, use_container_width=True)
 
     # --- 6. VISUALISASI PIE CHART (Kecil & Tengah) ---
-    st.write("") # Spasi
-    _, col_pie, _ = st.columns([1, 2, 1]) # Membuat kolom tengah untuk Pie Chart
+    st.write("") 
+    _, col_pie, _ = st.columns([1, 2, 1]) 
     with col_pie:
         st.subheader("💳 Metode Pembayaran")
         fig3 = px.pie(filtered_df, names='PaymentMethod', hole=0.5, color_discrete_sequence=PASTEL_PALETTE)
