@@ -9,82 +9,47 @@ from sklearn.preprocessing import StandardScaler
 # --- 1. CONFIG DASHBOARD ---
 st.set_page_config(page_title="Executive Financial Dashboard", layout="wide")
 
-# --- 2. CSS & ANIMATION SCRIPT ---
+# --- 2. PREMIUM PASTEL CSS ---
 st.markdown("""
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/1.9.3/countUp.min.js"></script>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-    
     html, body, [class*="css"] { 
         font-family: 'Plus Jakarta Sans', sans-serif; 
         background-color: #F8FAFC; 
     }
-
-    /* Modern Metric Card Design */
+    
+    /* Custom Metric Card Style */
     .metric-card {
         background: white;
-        padding: 24px;
-        border-radius: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        border-top: 6px solid #B2CEE0;
-        transition: transform 0.3s ease;
+        padding: 22px;
+        border-radius: 18px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        border-top: 5px solid #B2CEE0;
     }
-    .metric-card:hover {
-        transform: translateY(-5px);
-    }
-    .metric-label { 
-        color: #64748b; 
-        font-size: 15px; 
-        font-weight: 600; 
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .metric-value { 
-        color: #1e293b; 
-        font-size: 28px; 
-        font-weight: 800; 
-        margin-top: 8px; 
-    }
+    .metric-label { color: #64748b; font-size: 14px; font-weight: 600; }
+    .metric-value { color: #1e293b; font-size: 26px; font-weight: 800; margin-top: 5px; }
     
     .main-title { 
         color: #475569; 
         font-weight: 800; 
-        font-size: 2.8rem; 
-        margin-bottom: 30px; 
+        font-size: 2.5rem; 
+        margin-bottom: 25px; 
         text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Fungsi Helper untuk Metrik Beranimasi
-def animated_metric(label, value, icon, prefix="", suffix="", color="#B2CEE0", element_id=""):
-    decimals = 1 if suffix == "%" else (2 if "M" in suffix else 0)
-    
-    html_code = f"""
-    <div class="metric-card" style="border-top-color: {color};">
-        <div class="metric-label"><span>{icon}</span> {label}</div>
-        <div class="metric-value">{prefix}<span id="{element_id}">0</span>{suffix}</div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/1.9.3/countUp.min.js"></script>
-    <script>
-        var numAnim = new CountUp('{element_id}', 0, {value}, {decimals}, 2.5);
-        if (!numAnim.error) {{
-            numAnim.start();
-        }}
-    </script>
-    """
-    st.components.v1.html(html_code, height=150)
-
-# --- 3. DATA LOADING & CLEANING ---
+# --- 3. DATA LOADING & ROBUST CLEANING ---
 @st.cache_data
 def load_data():
     file_path = "Financial Sample.xlsx"
     if not os.path.exists(file_path): return None
+    
     df = pd.read_excel(file_path)
     df.columns = [c.strip().replace(' ', '_').lower() for c in df.columns]
     
-    cols_fin = ['sales', 'profit', 'units_sold', 'gross_sales']
+    # FIX: Pembersihan mendalam agar profit negatif tidak hilang
+    cols_fin = ['sales', 'profit', 'units_sold', 'gross_sales', 'cogs', 'discounts']
     for col in cols_fin:
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
@@ -95,11 +60,12 @@ def load_data():
     return df
 
 df = load_data()
+
 if df is None:
     st.error("File 'Financial Sample.xlsx' tidak ditemukan!")
     st.stop()
 
-# --- 4. FILTER ---
+# --- 4. SIDEBAR ---
 st.sidebar.markdown("### 🌸 Filter Dashboard")
 selected_countries = st.sidebar.multiselect("Pilih Negara", df['country'].unique(), default=df['country'].unique())
 df_filtered = df[df['country'].isin(selected_countries)].copy()
@@ -116,7 +82,7 @@ if len(df_filtered) > 1:
 # --- 6. HEADER ---
 st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights</h1>', unsafe_allow_html=True)
 
-# --- 7. ANIMATED METRICS ---
+# --- 7. METRICS ---
 total_sales = df_filtered['sales'].sum()
 total_profit = df_filtered['profit'].sum()
 units_sold = df_filtered['units_sold'].sum()
@@ -124,21 +90,21 @@ margin = (total_profit / total_sales * 100) if total_sales != 0 else 0
 
 m1, m2, m3, m4 = st.columns(4)
 with m1:
-    animated_metric("Total Sales", total_sales/1e6, "💰", prefix="$", suffix="M", color="#B2CEE0", element_id="sales_id")
+    st.markdown(f'<div class="metric-card"><div class="metric-label">💰 Total Sales</div><div class="metric-value">${total_sales/1e6:.2f}M</div></div>', unsafe_allow_html=True)
 with m2:
-    animated_metric("Total Profit", total_profit/1e6, "📈", prefix="$", suffix="M", color="#FFB7B2", element_id="profit_id")
+    st.markdown(f'<div class="metric-card" style="border-top-color: #FFB7B2;"><div class="metric-label">📈 Total Profit</div><div class="metric-value">${total_profit/1e6:.2f}M</div></div>', unsafe_allow_html=True)
 with m3:
-    animated_metric("Units Sold", units_sold, "📦", color="#B2DFDB", element_id="units_id")
+    st.markdown(f'<div class="metric-card" style="border-top-color: #B2DFDB;"><div class="metric-label">📦 Units Sold</div><div class="metric-value">{units_sold:,.0f}</div></div>', unsafe_allow_html=True)
 with m4:
-    animated_metric("Gross Margin", margin, "📊", suffix="%", color="#FDFD96", element_id="margin_id")
+    st.markdown(f'<div class="metric-card" style="border-top-color: #FDFD96;"><div class="metric-label">📊 Gross Margin</div><div class="metric-value">{margin:.1f}%</div></div>', unsafe_allow_html=True)
 
 st.write("") 
 
-# --- 8. ROW ATAS: MAP & HEATMAP (UPGRADED) ---
+# --- 8. ROW ATAS: MAP & CLUSTER ---
 col_left, col_right = st.columns([1.5, 1])
 
 with col_left:
-    st.markdown("### 🌍 Distribusi Total Sales Global")
+    st.subheader("🌍 Sebaran Penjualan Global")
     map_data = df_filtered.groupby('country')['sales'].sum().reset_index()
     fig_map = px.choropleth(
         map_data, locations="country", locationmode='country names', color="sales",
@@ -148,35 +114,35 @@ with col_left:
     st.plotly_chart(fig_map, use_container_width=True)
 
 with col_right:
-    st.markdown("### 🧬 Profitabilitas per Negara & Produk")
-    pivot_data = df_filtered.pivot_table(index='country', columns='product', values='profit', aggfunc='sum').fillna(0)
-    fig_heat = px.imshow(pivot_data, text_auto=True, aspect="auto", color_continuous_scale='Purp')
-    fig_heat.update_layout(margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_heat, use_container_width=True)
+    st.subheader("🎯 Klaster Profitabilitas")
+    fig_clust = px.scatter(df_filtered, x='units_sold', y='profit', color='segment_cluster',
+                           color_discrete_sequence=["#FFB7B2", "#B2CEE0", "#FDFD96"])
+    fig_clust.update_layout(plot_bgcolor='white', margin=dict(t=10, b=0, l=0, r=0))
+    st.plotly_chart(fig_clust, use_container_width=True)
 
-# --- 9. ROW BAWAH: TREND & PIE CHART ---
+# --- 9. ROW BAWAH: TREND (FIXED SMOOTH LINE) & PIE CHART ---
 c1, c2 = st.columns(2)
+
 with c1:
-    st.markdown("### 📈 Tren Profit Bulanan")
+    st.subheader("📈 Tren Profit Bulanan")
     df_trend = df_filtered.groupby('date')['profit'].sum().reset_index()
+    # MENGEMBALIKAN KE PX.LINE DENGAN SPLINE (MELENGKUNG HALUS)
     fig_trend = px.line(df_trend, x='date', y='profit', line_shape='spline')
-    fig_trend.update_traces(line_color='#B2CEE0', line_width=4, fill='tozeroy', fillcolor='rgba(178, 206, 224, 0.2)')
+    fig_trend.update_traces(line_color='#B2CEE0', line_width=4)
     fig_trend.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title="", yaxis_title="Profit ($)", 
                             yaxis=dict(showgrid=True, gridcolor='#F1F5F9'))
     st.plotly_chart(fig_trend, use_container_width=True)
 
 with c2:
-    st.markdown("### 🥧 Kontribusi Profit per Produk")
+    st.subheader("🥧 Kontribusi Profit per Produk")
     df_pie = df_filtered.groupby('product')['profit'].sum().reset_index()
-    fig_pie = px.pie(df_pie, values='profit', names='product', hole=0.4,
-                     color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_pie = px.pie(df_pie, values='profit', names='product',
+                     color_discrete_sequence=px.colors.qualitative.Pastel,
+                     hole=0.4)
     fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+    fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0))
     st.plotly_chart(fig_pie, use_container_width=True)
 
 # --- 10. DETAIL TABLE ---
 with st.expander("🔍 Lihat Detail Data Transaksi"):
-    st.dataframe(
-        df_filtered.sort_values(by='date', ascending=False)
-        .style.background_gradient(cmap='Greens', subset=['profit']),
-        use_container_width=True
-    )
+    st.dataframe(df_filtered.sort_values(by='date', ascending=False), use_container_width=True)
