@@ -71,25 +71,28 @@ if df is not None:
 
     st.divider()
 
-    # --- 5. VISUALISASI UTAMA & TAMBAHAN ---
-    row1_col1, row1_col2 = st.columns(2)
+    # --- 5. VISUALISASI UTAMA (3 KOLOM) ---
+    col1, col2, col3 = st.columns(3)
 
-    with row1_col1:
-        st.subheader("📶 Churn Berdasarkan Layanan Internet")
-        # Menghitung jumlah churn per layanan internet
+    with col1:
+        st.subheader("📶 Layanan Internet")
         service_churn = filtered_df.groupby(['InternetService', 'Churn']).size().reset_index(name='Jumlah')
         fig_service = px.bar(service_churn, x="InternetService", y="Jumlah", color="Churn",
-                             barmode="group",
-                             color_discrete_sequence=[PASTEL_PALETTE[2], PASTEL_PALETTE[1]])
-        fig_service.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                             barmode="group", color_discrete_sequence=[PASTEL_PALETTE[2], PASTEL_PALETTE[1]])
         st.plotly_chart(fig_service, use_container_width=True)
 
-    with row1_col2:
-        st.subheader("📝 Churn per Tipe Kontrak")
+    with col2:
+        st.subheader("📝 Tipe Kontrak")
         fig_bar = px.histogram(filtered_df, x="Contract", color="Churn",
-                               barmode="group",
-                               color_discrete_sequence=[PASTEL_PALETTE[0], PASTEL_PALETTE[1]])
+                               barmode="group", color_discrete_sequence=[PASTEL_PALETTE[0], PASTEL_PALETTE[1]])
         st.plotly_chart(fig_bar, use_container_width=True)
+
+    with col3:
+        st.subheader("💳 Metode Pembayaran")
+        fig_pie = px.pie(filtered_df, names='PaymentMethod', hole=0.4, 
+                         color_discrete_sequence=PASTEL_PALETTE)
+        fig_pie.update_layout(showlegend=False) # Sembunyikan legenda agar tidak sempit
+        st.plotly_chart(fig_pie, use_container_width=True)
 
     st.divider()
 
@@ -98,7 +101,6 @@ if df is not None:
     col_clust1, col_clust2 = st.columns([2, 1])
 
     with col_clust1:
-        # Menjalankan K-Means
         X = filtered_df[['tenure', 'MonthlyCharges']]
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
@@ -116,8 +118,8 @@ if df is not None:
         st.info("""
         **Analisis Klaster:**
         - **Cluster 0 (Biru):** Pelanggan Baru/Biaya Rendah.
-        - **Cluster 1 (Pink):** Pelanggan High-Charges.
-        - **Cluster 2 (Cyan):** Pelanggan Setia (High Tenure).
+        - **Cluster 1 (Pink):** Pelanggan High-Charges (Pengguna Premium).
+        - **Cluster 2 (Cyan):** Pelanggan Setia (Loyal/Long-term).
         """)
 
     # --- 7. TABEL DATA ---
