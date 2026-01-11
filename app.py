@@ -44,29 +44,27 @@ if df is None:
 # --- 4. SIDEBAR FILTER ---
 st.sidebar.header("🎨 Filter Analisis")
 country = st.sidebar.multiselect("Pilih Negara", df['country'].unique(), default=df['country'].unique())
-df_filtered = df[df['country'].isin(country)]
+df_filtered = df[df['country'].isin(country)].copy() # Gunakan .copy() untuk menghindari SettingWithCopyWarning
 
 # --- 5. DATA MINING: K-MEANS CLUSTERING ---
-# Kita mengelompokkan data berdasarkan Units Sold dan Profit
-X_clust = df_filtered[['units_sold', 'profit']]
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X_clust)
+if not df_filtered.empty:
+    X_clust = df_filtered[['units_sold', 'profit']]
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_clust)
 
-# Membuat 3 Klaster
-kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-df_filtered['cluster'] = kmeans.fit_predict(X_scaled)
-df_filtered['cluster'] = df_filtered['cluster'].astype(str) # Ubah ke string agar warna di chart diskrit
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    df_filtered['cluster'] = kmeans.fit_predict(X_scaled)
+    df_filtered['cluster'] = df_filtered['cluster'].astype(str)
 
 # --- 6. HEADER ---
 st.title("🌸 Financial Intelligence & Clustering")
-st.markdown("Dashboard ini menggabungkan analisis BI tradisional dengan Machine Learning untuk segmentasi transaksi.")
 
 # --- 7. ROW 1: KPI ---
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Total Sales", f"${df_filtered['sales'].sum()/1e6:.2f}M")
 m2.metric("Total Profit", f"${df_filtered['profit'].sum()/1e6:.2f}M")
 m3.metric("Units Sold", f"{df_filtered['units_sold'].sum():,.0f}")
-m4.metric("Total Transaksi", len(df_filtered))
+m4.metric("Avg Margin", f"{(df_filtered['profit'].sum()/df_filtered['sales'].sum()*100):.1f}%" if df_filtered['sales'].sum() != 0 else "0%")
 
 st.write("---")
 
@@ -74,21 +72,22 @@ st.write("---")
 col_clust_text, col_clust_chart = st.columns([1, 2])
 
 with col_clust_text:
-    st.subheader("🎯 Analisis Segmentasi (K-Means)")
-    st.write("""
-    Gunakan grafik ini untuk melihat pengelompokan transaksi:
-    - **Klaster 0**: Transaksi Volume Rendah.
-    - **Klaster 1**: Transaksi Efisiensi Tinggi (Profit Tinggi).
-    - **Klaster 2**: Transaksi Volume Besar.
-    """)
-    st.dataframe(df_filtered.groupby('cluster')[['units_sold', 'profit']].mean().style.background_gradient(cmap='Pastel1'))
+    st.subheader("🎯 Analisis Segmentasi")
+    st.write("Rata-rata performa per kelompok transaksi:")
+    
+    # Ringkasan Klaster
+    summary_df = df_filtered.groupby('cluster')[['units_sold', 'profit']].mean()
+    # Menampilkan tabel (tanpa gradien jika Anda ingin menghindari resiko matplotlib lagi, 
+    # tapi karena sudah ditambah di requirements, ini akan aman)
+    st.dataframe(summary_df.style.background_gradient(cmap='PuBu'), use_container_width=True)
 
 with col_clust_chart:
     
     fig_clust = px.scatter(df_filtered, x='units_sold', y='profit', color='cluster',
-                           hover_data=['product', 'country'],
+                           hover_data=['product', 'country', 'segment'],
                            title="Segmentasi Transaksi: Units Sold vs Profit",
                            color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_clust.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_clust, use_container_width=True)
 
 # --- 9. ROW 3: TREND & MAP ---
@@ -96,17 +95,17 @@ c1, c2 = st.columns(2)
 
 with c1:
     st.subheader("📈 Tren Penjualan")
-    fig_line = px.line(df_filtered.groupby('date')['sales'].sum().reset_index(), x='date', y='sales',
-                       color_discrete_sequence=['#B2CEE0'])
+    df_trend = df_filtered.groupby('date')['sales'].sum().reset_index()
+    fig_line = px.line(df_trend, x='date', y='sales', color_discrete_sequence=['#B2CEE0'])
     st.plotly_chart(fig_line, use_container_width=True)
 
 with c2:
     st.subheader("🌍 Sebaran Penjualan Global")
-    fig_map = px.choropleth(df_filtered.groupby('country')['sales'].sum().reset_index(),
-                            locations="country", locationmode='country names', color="sales",
-                            color_continuous_scale="Mint")
+    map_data = df_filtered.groupby('country')['sales'].sum().reset_index()
+    fig_map = px.choropleth(map_data, locations="country", locationmode='country names', 
+                            color="sales", color_continuous_scale="Purples")
     st.plotly_chart(fig_map, use_container_width=True)
 
 # --- 10. ROW 4: DATA TABLE ---
-with st.expander("🔍 Lihat Detail Data dengan Label Klaster"):
-    st.write(df_filtered.sort_values('date', ascending=False))
+with st.expander("🔍 Lihat Detail Data Mentah"):
+    st.write(df_filtered)
