@@ -31,6 +31,14 @@ st.markdown("""
 
     h2, h3 { color: #6D8299; font-family: 'Segoe UI', sans-serif; margin-bottom: 20px;}
     div[data-testid="stMetric"] { display: none; } 
+    
+    /* Styling khusus untuk expander agar lebih menarik */
+    .streamlit-expanderHeader {
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        color: #6D8299 !important;
+        font-weight: bold;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -143,22 +151,26 @@ if df is not None:
 
     st.divider()
 
-    # --- 7. TABEL DATA (DESAIN MENARIK) ---
-    st.subheader("🔍 Detail Database Pelanggan")
-    
-    # Membuat tabel lebih interaktif dan bergaya
-    st.dataframe(
-        filtered_df.head(100),
-        use_container_width=True,
-        column_config={
-            "Churn": st.column_config.TextColumn("Status Churn", help="Apakah pelanggan sudah berhenti?"),
-            "MonthlyCharges": st.column_config.NumberColumn("Biaya Bulanan", format="$%.2f"),
-            "TotalCharges": st.column_config.ProgressColumn("Akumulasi Pendapatan", format="$%.2f", min_value=0, max_value=float(filtered_df['TotalCharges'].max())),
-            "tenure": st.column_config.NumberColumn("Tenure (Bulan)", format="%d 📅"),
-            "Cluster": st.column_config.TextColumn("Grup Segmen"),
-        },
-        hide_index=True
-    )
+    # --- 7. TABEL DATA (BISA DISEMBUNYIKAN) ---
+    with st.expander("🔍 Klik untuk Melihat Detail Database Pelanggan"):
+        st.markdown("### Detail Data (100 Baris Pertama)")
+        st.dataframe(
+            filtered_df.head(100),
+            use_container_width=True,
+            column_config={
+                "Churn": st.column_config.TextColumn("Status Churn"),
+                "MonthlyCharges": st.column_config.NumberColumn("Biaya Bulanan", format="$%.2f"),
+                "TotalCharges": st.column_config.ProgressColumn(
+                    "Akumulasi Pendapatan", 
+                    format="$%.2f", 
+                    min_value=0, 
+                    max_value=float(filtered_df['TotalCharges'].max())
+                ),
+                "tenure": st.column_config.NumberColumn("Tenure (Bulan)", format="%d 📅"),
+                "Cluster": st.column_config.TextColumn("Grup Segmen"),
+            },
+            hide_index=True
+        )
 
 else:
     st.error("File tidak ditemukan.")
