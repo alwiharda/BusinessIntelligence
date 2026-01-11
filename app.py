@@ -28,7 +28,6 @@ st.markdown("""
 def animated_metric(label, value, prefix="", suffix="", color="#B2CEE0", element_id=""):
     decimals = 2 if prefix == "$" else (1 if suffix == "%" else 0)
     
-    # CSS ini diletakkan di dalam komponen agar font dan background terbaca sempurna
     html_code = f"""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -111,7 +110,7 @@ with m4:
 
 st.write("") 
 
-# --- 8. ROW ATAS: MAP & CLUSTER ---
+# --- 8. ROW ATAS: MAP & SEGMENT BAR PLOT (UPDATED) ---
 col_left, col_right = st.columns([1.5, 1])
 with col_left:
     st.subheader("🌍 Sebaran Penjualan Global")
@@ -122,11 +121,23 @@ with col_left:
     st.plotly_chart(fig_map, use_container_width=True)
 
 with col_right:
-    st.subheader("🎯 Klaster Profitabilitas")
-    fig_clust = px.scatter(df_filtered, x='units_sold', y='profit', color='segment_cluster',
-                           color_discrete_sequence=["#FFB7B2", "#B2CEE0", "#FDFD96"])
-    fig_clust.update_layout(plot_bgcolor='white', margin=dict(t=10, b=0, l=0, r=0))
-    st.plotly_chart(fig_clust, use_container_width=True)
+    st.subheader("📊 Unit Penjualan per Segmen")
+    # Mengagregasi total unit per segmen hasil clustering
+    df_seg_units = df_filtered.groupby('segment_cluster')['units_sold'].sum().reset_index()
+    # Membuat Bar Plot
+    fig_bar = px.bar(df_seg_units, x='segment_cluster', y='units_sold', 
+                     color='segment_cluster',
+                     color_discrete_sequence=["#B2CEE0", "#FFB7B2", "#FDFD96"],
+                     text_auto='.2s')
+    
+    fig_bar.update_layout(
+        plot_bgcolor='white', 
+        margin=dict(t=10, b=0, l=0, r=0),
+        xaxis_title="Segmen Performa",
+        yaxis_title="Total Unit Terjual",
+        showlegend=False
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
 
 # --- 9. ROW BAWAH: TREND & PIE CHART ---
 c1, c2 = st.columns(2)
