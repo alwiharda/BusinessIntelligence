@@ -8,13 +8,11 @@ from sklearn.preprocessing import StandardScaler
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Customer Churn Dashboard", layout="wide")
 
-# Custom CSS untuk Animasi Angka dan Tampilan Menarik
+# Custom CSS & JS untuk Animasi Angka Berjalan
 st.markdown("""
     <style>
-    /* Latar belakang utama */
     .stApp { background-color: #FDFCF0; }
     
-    /* Judul Utama di Tengah */
     .main-title {
         text-align: center;
         color: #6D8299;
@@ -24,7 +22,7 @@ st.markdown("""
         padding: 20px 0;
     }
     
-    /* Container Kartu Metrik Modern */
+    /* Container Kartu Metrik */
     .metric-card {
         background-color: rgba(255, 255, 255, 0.8);
         border-radius: 20px;
@@ -34,34 +32,62 @@ st.markdown("""
         transition: transform 0.3s ease;
         border: 1px solid rgba(255,255,255,0.3);
     }
-    .metric-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    }
     
-    /* Animasi Angka */
-    @keyframes countUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-number {
-        font-size: 2.2rem;
-        font-weight: bold;
-        color: #6D8299;
-        animation: countUp 1s ease-out forwards;
-    }
     .metric-label {
         color: #8E9794;
-        font-size: 1rem;
+        font-size: 0.9rem;
         margin-bottom: 5px;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
+
+    /* Styling untuk Angka yang akan dianimasikan */
+    .counter-value {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #6D8299;
+        font-family: 'Segoe UI', sans-serif;
+    }
     
-    h2, h3 { color: #6D8299; font-family: 'Segoe UI', sans-serif; }
-    div[data-testid="stMetric"] { display: none; } /* Sembunyikan metrik bawaan */
+    div[data-testid="stMetric"] { display: none; } 
     </style>
     """, unsafe_allow_html=True)
+
+# Fungsi Helper untuk Animasi Counter (JavaScript)
+def animated_metric(label, value, prefix="", suffix="", precision=0):
+    # Unik ID untuk setiap komponen agar JS tidak bentrok
+    div_id = label.replace(" ", "").lower()
+    
+    component_html = f"""
+    <div style="text-align:center; font-family:'Segoe UI', sans-serif; background:rgba(255,255,255,0.8); padding:25px; border-radius:20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.3);">
+        <div style="color:#8E9794; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">{label}</div>
+        <div id="{div_id}" style="font-size:2.2rem; font-weight:bold; color:#6D8299;">0</div>
+    </div>
+
+    <script>
+    (function() {{
+        var start = 0;
+        var end = {value};
+        var duration = 1500; // Durasi animasi dalam milidetik
+        var range = end - start;
+        var current = start;
+        var increment = end > start ? (end / (duration / 16)) : 0;
+        var obj = document.getElementById('{div_id}');
+        
+        var timer = setInterval(function() {{
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment <= 0 && current <= end)) {{
+                clearInterval(timer);
+                current = end;
+            }}
+            // Format angka sesuai presisi dan lokalisasi
+            var formatted = current.toLocaleString('en-US', {{minimumFractionDigits: {precision}, maximumFractionDigits: {precision}}});
+            obj.innerHTML = "{prefix}" + formatted + "{suffix}";
+        }}, 16);
+    }})();
+    </script>
+    """
+    st.components.v1.html(component_html, height=150)
 
 # Palet Warna Pastel
 PASTEL_PALETTE = ['#AEC6CF', '#FFB7B2', '#B2E2F2', '#FFDAC1', '#E2F0CB', '#B5EAD7']
@@ -91,36 +117,23 @@ if df is not None:
     st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence</div>', unsafe_allow_html=True)
     
     # Kalkulasi Data
-    total_cust = len(filtered_df)
-    churn_rate = (filtered_df['Churn'] == 'Yes').mean() * 100
-    avg_tenure = filtered_df['tenure'].mean()
-    total_rev = filtered_df['TotalCharges'].sum() / 1e3
+    total_cust = float(len(filtered_df))
+    churn_rate = float((filtered_df['Churn'] == 'Yes').mean() * 100)
+    avg_tenure = float(filtered_df['tenure'].mean())
+    total_rev = float(filtered_df['TotalCharges'].sum() / 1e3)
 
-    # Baris Metrik dengan HTML/CSS Custom
+    # Baris Metrik dengan Animasi JS
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-label">Total Pelanggan</div>
-            <div class="animate-number">{total_cust:,}</div>
-        </div>""", unsafe_allow_html=True)
+        animated_metric("Total Pelanggan", total_cust)
     with col2:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-label">Churn Rate</div>
-            <div class="animate-number">{churn_rate:.1f}%</div>
-        </div>""", unsafe_allow_html=True)
+        animated_metric("Churn Rate", churn_rate, suffix="%", precision=1)
     with col3:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-label">Rata-rata Tenure</div>
-            <div class="animate-number">{avg_tenure:.1f} Bln</div>
-        </div>""", unsafe_allow_html=True)
+        animated_metric("Rata-rata Tenure", avg_tenure, suffix=" Bln", precision=1)
     with col4:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-label">Total Revenue</div>
-            <div class="animate-number">${total_rev:.1f}K</div>
-        </div>""", unsafe_allow_html=True)
+        animated_metric("Total Revenue", total_rev, prefix="$", suffix="K", precision=1)
 
-    st.write("") # Spasi tambahan
     st.divider()
 
     # --- 5. VISUALISASI BARIS ATAS ---
