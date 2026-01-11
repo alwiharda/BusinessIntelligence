@@ -28,13 +28,14 @@ PASTEL_PALETTE = ['#AEC6CF', '#FFB7B2', '#B2E2F2', '#FFDAC1', '#E2F0CB', '#B5EAD
 # --- 2. ETL & DATA CLEANING ---
 @st.cache_data
 def load_and_clean_data():
+    # Menggunakan nama file sesuai dataset Anda
     file_path = 'WA_Fn-UseC_-Telco-Customer-Churn.csv'
     try:
         df = pd.read_csv(file_path)
         # Cleaning: Konversi TotalCharges ke numerik
         df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
         df.dropna(subset=['TotalCharges'], inplace=True)
-        # Standardize string
+        # Menyederhanakan nama Metode Pembayaran
         df['PaymentMethod'] = df['PaymentMethod'].str.replace(' (automatic)', '', regex=False)
         return df
     except FileNotFoundError:
@@ -51,12 +52,12 @@ if df is not None:
         default=df['Contract'].unique()
     )
     
-    # Filter Data
+    # Filter Data berdasarkan sidebar
     filtered_df = df[df['Contract'].isin(contract_filter)]
 
     # --- 4. HEADER & KPI METRICS ---
     st.title("📊 Customer Churn Business Intelligence")
-    st.markdown("Dashboard interaktif untuk menganalisis risiko churn dan segmentasi pelanggan.")
+    st.markdown("Dashboard analisis untuk mendeteksi profil pelanggan dan risiko churn.")
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
@@ -71,36 +72,42 @@ if df is not None:
 
     st.divider()
 
-    # --- 5. VISUALISASI UTAMA (3 KOLOM) ---
-    col1, col2, col3 = st.columns(3)
+    # --- 5. VISUALISASI BARIS ATAS (Layanan & Kontrak) ---
+    col_top1, col_top2 = st.columns(2)
 
-    with col1:
+    with col_top1:
         st.subheader("📶 Layanan Internet")
         service_churn = filtered_df.groupby(['InternetService', 'Churn']).size().reset_index(name='Jumlah')
         fig_service = px.bar(service_churn, x="InternetService", y="Jumlah", color="Churn",
                              barmode="group", color_discrete_sequence=[PASTEL_PALETTE[2], PASTEL_PALETTE[1]])
+        fig_service.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_service, use_container_width=True)
 
-    with col2:
+    with col_top2:
         st.subheader("📝 Tipe Kontrak")
         fig_bar = px.histogram(filtered_df, x="Contract", color="Churn",
                                barmode="group", color_discrete_sequence=[PASTEL_PALETTE[0], PASTEL_PALETTE[1]])
+        fig_bar.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_bar, use_container_width=True)
 
-    with col3:
-        st.subheader("💳 Metode Pembayaran")
-        fig_pie = px.pie(filtered_df, names='PaymentMethod', hole=0.4, 
-                         color_discrete_sequence=PASTEL_PALETTE)
-        fig_pie.update_layout(showlegend=False) # Sembunyikan legenda agar tidak sempit
-        st.plotly_chart(fig_pie, use_container_width=True)
+    # --- 6. VISUALISASI BARIS BAWAH (Metode Pembayaran - Pie Chart) ---
+    st.subheader("💳 Distribusi Metode Pembayaran")
+    fig_pie = px.pie(filtered_df, names='PaymentMethod', hole=0.4, 
+                     color_discrete_sequence=PASTEL_PALETTE,
+                     labels={'PaymentMethod': 'Metode Pembayaran'})
+    # Menampilkan legenda di samping dan mengatur posisi teks
+    fig_pie.update_traces(textinfo='percent+label', textposition='inside')
+    fig_pie.update_layout(legend_title_text='Keterangan Warna:', legend=dict(orientation="v", yanchor="middle", y=0.5))
+    st.plotly_chart(fig_pie, use_container_width=True)
 
     st.divider()
 
-    # --- 6. DATA MINING (CLUSTERING) ---
-    st.subheader("🎯 Segmentasi Pelanggan (K-Means Clustering)")
+    # --- 7. DATA MINING (CLUSTERING) ---
+    st.subheader("🎯 Segmentasi Pelanggan (Tenure vs Monthly Charges)")
     col_clust1, col_clust2 = st.columns([2, 1])
 
     with col_clust1:
+        # Preprocessing & KMeans
         X = filtered_df[['tenure', 'MonthlyCharges']]
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
@@ -110,19 +117,19 @@ if df is not None:
         fig_cluster = px.scatter(filtered_df, x="tenure", y="MonthlyCharges", 
                                  color=filtered_df['Cluster'].astype(str), 
                                  symbol="Churn",
-                                 title="Visualisasi Klaster: Tenure vs Monthly Charges",
                                  color_discrete_sequence=PASTEL_PALETTE)
+        fig_cluster.update_layout(legend_title_text='Kelompok Cluster')
         st.plotly_chart(fig_cluster, use_container_width=True)
 
     with col_clust2:
         st.info("""
-        **Analisis Klaster:**
-        - **Cluster 0 (Biru):** Pelanggan Baru/Biaya Rendah.
-        - **Cluster 1 (Pink):** Pelanggan High-Charges (Pengguna Premium).
-        - **Cluster 2 (Cyan):** Pelanggan Setia (Loyal/Long-term).
+        **Interpretasi Segmen:**
+        - **Cluster 0 (Biru):** Pelanggan Baru dengan biaya rendah.
+        - **Cluster 1 (Pink):** Pengguna Premium (Biaya Tinggi).
+        - **Cluster 2 (Cyan):** Pelanggan Setia Jangka Panjang.
         """)
 
-    # --- 7. TABEL DATA ---
+    # --- 8. TABEL DATA ---
     with st.expander("🔍 Lihat Detail Data Mentah"):
         st.dataframe(filtered_df.head(100), use_container_width=True)
 
