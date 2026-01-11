@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Customer Churn Dashboard", layout="wide")
 
-# Custom CSS agar semua elemen menyatu dengan background dan judul di tengah
+# Custom CSS untuk Animasi Angka dan Tampilan Menarik
 st.markdown("""
     <style>
     /* Latar belakang utama */
@@ -24,14 +24,42 @@ st.markdown("""
         padding: 20px 0;
     }
     
-    /* Kartu metrik tanpa border putih yang kaku */
-    [data-testid="stMetric"] {
-        background-color: rgba(255, 255, 255, 0.5);
-        padding: 20px;
-        border-radius: 15px;
+    /* Container Kartu Metrik Modern */
+    .metric-card {
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        text-align: center;
+        transition: transform 0.3s ease;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* Animasi Angka */
+    @keyframes countUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-number {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #6D8299;
+        animation: countUp 1s ease-out forwards;
+    }
+    .metric-label {
+        color: #8E9794;
+        font-size: 1rem;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     
     h2, h3 { color: #6D8299; font-family: 'Segoe UI', sans-serif; }
+    div[data-testid="stMetric"] { display: none; } /* Sembunyikan metrik bawaan */
     </style>
     """, unsafe_allow_html=True)
 
@@ -59,20 +87,44 @@ if df is not None:
     contract_filter = st.sidebar.multiselect("Tipe Kontrak:", df['Contract'].unique(), default=df['Contract'].unique())
     filtered_df = df[df['Contract'].isin(contract_filter)]
 
-    # --- 4. HEADER (JUDUL DI TENGAH) ---
-    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence 📊</div>', unsafe_allow_html=True)
+    # --- 4. HEADER & ANIMATED METRICS ---
+    st.markdown('<div class="main-title">📊 Customer Churn Business Intelligence</div>', unsafe_allow_html=True)
     
-    m1, m2, m3, m4 = st.columns(4)
-    with m1: st.metric("Total Pelanggan", len(filtered_df))
-    with m2: st.metric("Churn Rate", f"{(filtered_df['Churn'] == 'Yes').mean()*100:.1f}%")
-    with m3: st.metric("Rata-rata Tenure", f"{filtered_df['tenure'].mean():.1f} Bln")
-    with m4: st.metric("Total Revenue", f"${filtered_df['TotalCharges'].sum()/1e3:.1f}K")
+    # Kalkulasi Data
+    total_cust = len(filtered_df)
+    churn_rate = (filtered_df['Churn'] == 'Yes').mean() * 100
+    avg_tenure = filtered_df['tenure'].mean()
+    total_rev = filtered_df['TotalCharges'].sum() / 1e3
 
+    # Baris Metrik dengan HTML/CSS Custom
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f"""<div class="metric-card">
+            <div class="metric-label">Total Pelanggan</div>
+            <div class="animate-number">{total_cust:,}</div>
+        </div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""<div class="metric-card">
+            <div class="metric-label">Churn Rate</div>
+            <div class="animate-number">{churn_rate:.1f}%</div>
+        </div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""<div class="metric-card">
+            <div class="metric-label">Rata-rata Tenure</div>
+            <div class="animate-number">{avg_tenure:.1f} Bln</div>
+        </div>""", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""<div class="metric-card">
+            <div class="metric-label">Total Revenue</div>
+            <div class="animate-number">${total_rev:.1f}K</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.write("") # Spasi tambahan
     st.divider()
 
-    # --- 5. VISUALISASI BARIS ATAS (Layanan & Kontrak) ---
+    # --- 5. VISUALISASI BARIS ATAS ---
     col1, col2 = st.columns(2)
-
     with col1:
         st.subheader("📶 Layanan Internet")
         fig1 = px.histogram(filtered_df, x="InternetService", color="Churn", barmode="group",
@@ -87,7 +139,7 @@ if df is not None:
         fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=350)
         st.plotly_chart(fig2, use_container_width=True)
 
-    # --- 6. VISUALISASI PIE CHART (Kecil & Tengah) ---
+    # --- 6. VISUALISASI PIE CHART ---
     st.write("") 
     _, col_pie, _ = st.columns([1, 2, 1]) 
     with col_pie:
@@ -112,4 +164,3 @@ if df is not None:
 
 else:
     st.error("File tidak ditemukan.")
-
