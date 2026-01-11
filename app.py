@@ -90,7 +90,7 @@ if len(df_filtered) > 1:
     df_filtered['segment_cluster'] = df_filtered['segment_cluster'].map({0: 'Low Performance', 1: 'High Performance', 2: 'Average'})
 
 # --- 6. HEADER ---
-st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">🌸 Financial Intelligence Insights 🌸</h1>', unsafe_allow_html=True)
 
 # --- 7. METRICS (ANIMATED) ---
 total_sales = df_filtered['sales'].sum()
@@ -162,3 +162,4 @@ with c2:
 # --- 10. DETAIL TABLE ---
 with st.expander("🔍 Lihat Detail Data Transaksi"):
     st.dataframe(df_filtered.sort_values(by='date', ascending=False), use_container_width=True)
+
